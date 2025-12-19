@@ -1,0 +1,6 @@
+﻿gedi2py.tools.diff\_q
+=====================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: diff_q

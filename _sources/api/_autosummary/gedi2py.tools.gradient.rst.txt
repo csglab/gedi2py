@@ -1,0 +1,6 @@
+﻿gedi2py.tools.gradient
+======================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: gradient

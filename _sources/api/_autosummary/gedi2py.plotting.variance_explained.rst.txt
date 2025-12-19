@@ -1,0 +1,6 @@
+﻿gedi2py.plotting.variance\_explained
+====================================
+
+.. currentmodule:: gedi2py.plotting
+
+.. autofunction:: variance_explained

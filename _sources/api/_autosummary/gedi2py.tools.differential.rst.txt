@@ -1,0 +1,6 @@
+﻿gedi2py.tools.differential
+==========================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: differential

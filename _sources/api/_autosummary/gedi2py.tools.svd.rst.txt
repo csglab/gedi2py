@@ -1,0 +1,6 @@
+﻿gedi2py.tools.svd
+=================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: svd

@@ -1,0 +1,6 @@
+﻿gedi2py.tools.umap
+==================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: umap

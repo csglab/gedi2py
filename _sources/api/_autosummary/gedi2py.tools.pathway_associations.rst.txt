@@ -1,0 +1,6 @@
+﻿gedi2py.tools.pathway\_associations
+===================================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: pathway_associations

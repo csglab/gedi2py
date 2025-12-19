@@ -1,0 +1,6 @@
+﻿gedi2py.plotting.dispersion
+===========================
+
+.. currentmodule:: gedi2py.plotting
+
+.. autofunction:: dispersion

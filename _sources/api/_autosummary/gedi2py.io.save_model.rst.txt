@@ -1,0 +1,6 @@
+﻿gedi2py.io.save\_model
+======================
+
+.. currentmodule:: gedi2py.io
+
+.. autofunction:: save_model

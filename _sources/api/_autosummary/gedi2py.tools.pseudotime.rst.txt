@@ -1,0 +1,6 @@
+﻿gedi2py.tools.pseudotime
+========================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: pseudotime

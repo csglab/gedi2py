@@ -1,0 +1,6 @@
+﻿gedi2py.plotting.umap
+=====================
+
+.. currentmodule:: gedi2py.plotting
+
+.. autofunction:: umap

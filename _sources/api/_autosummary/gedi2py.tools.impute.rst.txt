@@ -1,0 +1,6 @@
+﻿gedi2py.tools.impute
+====================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: impute

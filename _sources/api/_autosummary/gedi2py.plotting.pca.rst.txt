@@ -1,0 +1,6 @@
+﻿gedi2py.plotting.pca
+====================
+
+.. currentmodule:: gedi2py.plotting
+
+.. autofunction:: pca

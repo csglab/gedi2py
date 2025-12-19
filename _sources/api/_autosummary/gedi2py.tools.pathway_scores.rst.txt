@@ -1,0 +1,6 @@
+﻿gedi2py.tools.pathway\_scores
+=============================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: pathway_scores

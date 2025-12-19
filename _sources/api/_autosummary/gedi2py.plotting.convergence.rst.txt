@@ -1,0 +1,6 @@
+﻿gedi2py.plotting.convergence
+============================
+
+.. currentmodule:: gedi2py.plotting
+
+.. autofunction:: convergence

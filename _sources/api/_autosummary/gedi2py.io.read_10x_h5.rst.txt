@@ -1,0 +1,6 @@
+﻿gedi2py.io.read\_10x\_h5
+========================
+
+.. currentmodule:: gedi2py.io
+
+.. autofunction:: read_10x_h5

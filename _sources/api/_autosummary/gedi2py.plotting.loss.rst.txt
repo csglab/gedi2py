@@ -1,0 +1,6 @@
+﻿gedi2py.plotting.loss
+=====================
+
+.. currentmodule:: gedi2py.plotting
+
+.. autofunction:: loss

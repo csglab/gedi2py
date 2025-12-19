@@ -1,0 +1,6 @@
+﻿gedi2py.tools.gedi
+==================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: gedi

@@ -1,0 +1,6 @@
+﻿gedi2py.io.load\_model
+======================
+
+.. currentmodule:: gedi2py.io
+
+.. autofunction:: load_model

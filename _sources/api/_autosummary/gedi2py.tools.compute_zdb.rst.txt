@@ -1,0 +1,6 @@
+﻿gedi2py.tools.compute\_zdb
+==========================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: compute_zdb

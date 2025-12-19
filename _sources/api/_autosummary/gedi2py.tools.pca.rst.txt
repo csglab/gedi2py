@@ -1,0 +1,6 @@
+﻿gedi2py.tools.pca
+=================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: pca

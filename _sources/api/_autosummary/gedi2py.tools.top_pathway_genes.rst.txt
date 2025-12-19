@@ -1,0 +1,6 @@
+﻿gedi2py.tools.top\_pathway\_genes
+=================================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: top_pathway_genes

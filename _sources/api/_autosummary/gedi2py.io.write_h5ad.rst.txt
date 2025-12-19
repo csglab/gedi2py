@@ -1,0 +1,6 @@
+﻿gedi2py.io.write\_h5ad
+======================
+
+.. currentmodule:: gedi2py.io
+
+.. autofunction:: write_h5ad

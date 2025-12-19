@@ -1,0 +1,6 @@
+﻿gedi2py.tools.variance
+======================
+
+.. currentmodule:: gedi2py.tools
+
+.. autofunction:: variance
