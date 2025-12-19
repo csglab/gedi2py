@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
+      contents: read   # Required for checkout
       id-token: write  # Required for trusted publishing
 
     steps:
