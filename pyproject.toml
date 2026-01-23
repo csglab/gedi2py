@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "gedi2py"
-version = "0.1.0"
+version = "0.2.0"
 description = "Gene Expression Decomposition for Integration - scverse-compliant single-cell RNA-seq batch correction"
 readme = "README.md"
 license = {text = "MIT"}
