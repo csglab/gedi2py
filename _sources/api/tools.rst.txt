@@ -40,6 +40,16 @@ Model Training
           key_added="gedi",
       )
 
+      # Paired data mode (e.g., CITE-seq with ADT/RNA counts)
+      # GEDI models the log-ratio: Yi = log((M1+1)/(M2+1))
+      gd.tl.gedi(
+          adata,
+          batch_key="sample",
+          layer="adt",       # First count matrix (numerator)
+          layer2="rna",      # Second count matrix (denominator)
+          n_latent=10,
+      )
+
    **Stored Results**
 
    - ``adata.obsm['X_gedi']``: Cell embeddings (n_cells × n_latent)

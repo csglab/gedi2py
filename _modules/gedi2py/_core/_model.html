@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../../genindex.html"><link rel="search" title="Search" href="../../../search.html">
 
-    <!-- Generated with Sphinx 8.2.3 and Furo 2025.12.19 -->
+    <!-- Generated with Sphinx 9.0.4 and Furo 2025.12.19 -->
         <title>gedi2py._core._model - gedi2py</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?v=7bdb33bb" />
@@ -326,6 +326,11 @@
 <span class="sd">        Number of latent factors (K). Default: 10.</span>
 <span class="sd">    layer</span>
 <span class="sd">        Layer to use instead of ``adata.X``. If None, uses ``adata.X``.</span>
+<span class="sd">        For paired data (e.g., CITE-seq), this is the first count matrix.</span>
+<span class="sd">    layer2</span>
+<span class="sd">        Second layer for paired count data (M_paired mode). When specified</span>
+<span class="sd">        along with ``layer``, GEDI models the log-ratio: Yi = log((M1+1)/(M2+1)).</span>
+<span class="sd">        This is useful for CITE-seq ADT/RNA ratios or similar paired assays.</span>
 <span class="sd">    mode</span>
 <span class="sd">        Normalization mode for B matrices: &quot;Bsphere&quot; (recommended) or &quot;Bl2&quot;.</span>
 <span class="sd">    ortho_Z</span>
@@ -350,6 +355,8 @@
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
+<span class="sd">    Standard usage:</span>
+
 <span class="sd">    &gt;&gt;&gt; import gedi2py as gd</span>
 <span class="sd">    &gt;&gt;&gt; import scanpy as sc</span>
 <span class="sd">    &gt;&gt;&gt; adata = sc.read_h5ad(&quot;data.h5ad&quot;)</span>
@@ -357,6 +364,14 @@
 <span class="sd">    &gt;&gt;&gt; model.train(max_iterations=100)</span>
 <span class="sd">    &gt;&gt;&gt; Z = model.get_Z()</span>
 <span class="sd">    &gt;&gt;&gt; embeddings = model.get_latent_representation()</span>
+
+<span class="sd">    Paired data mode (e.g., CITE-seq):</span>
+
+<span class="sd">    &gt;&gt;&gt; model = gd.GEDIModel(</span>
+<span class="sd">    ...     adata, batch_key=&quot;sample&quot;, n_latent=10,</span>
+<span class="sd">    ...     layer=&quot;adt&quot;, layer2=&quot;rna&quot;</span>
+<span class="sd">    ... )</span>
+<span class="sd">    &gt;&gt;&gt; model.train(max_iterations=100)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="GEDIModel.__init__">
@@ -368,6 +383,7 @@
         <span class="o">*</span><span class="p">,</span>
         <span class="n">n_latent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
         <span class="n">layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">layer2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;Bl2&quot;</span><span class="p">,</span> <span class="s2">&quot;Bsphere&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Bsphere&quot;</span><span class="p">,</span>
         <span class="n">ortho_Z</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">C</span><span class="p">:</span> <span class="n">NDArray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -380,6 +396,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_key</span> <span class="o">=</span> <span class="n">batch_key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_latent</span> <span class="o">=</span> <span class="n">n_latent</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="o">=</span> <span class="n">layer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="o">=</span> <span class="n">layer2</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ortho_Z</span> <span class="o">=</span> <span class="n">ortho_Z</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="o">=</span> <span class="n">C</span>
@@ -387,6 +404,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">random_state</span> <span class="o">=</span> <span class="n">random_state</span> <span class="k">if</span> <span class="n">random_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">random_state</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span> <span class="k">if</span> <span class="n">verbose</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">verbosity</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">=</span> <span class="n">n_jobs</span> <span class="k">if</span> <span class="n">n_jobs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">n_jobs</span>
+
+        <span class="c1"># Determine observation type based on layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_obs_type</span> <span class="o">=</span> <span class="s2">&quot;M_paired&quot;</span> <span class="k">if</span> <span class="n">layer2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;Y&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_is_trained</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_is_initialized</span> <span class="o">=</span> <span class="kc">False</span>
@@ -422,10 +442,33 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;Bl2&quot;</span><span class="p">,</span> <span class="s2">&quot;Bsphere&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mode must be &#39;Bl2&#39; or &#39;Bsphere&#39;, got &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
 
+        <span class="c1"># Validate layer2 (M_paired mode)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;layer2 requires layer to be specified. &quot;</span>
+                    <span class="s2">&quot;For paired data, provide both layer (M1) and layer2 (M2).&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;layer2 &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="si">}</span><span class="s2">&#39; not found in adata.layers. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Available layers: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;layer &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="si">}</span><span class="s2">&#39; not found in adata.layers. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Available layers: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare data matrices for C++ backend.&quot;&quot;&quot;</span>
-        <span class="c1"># Get expression matrix</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Get expression matrix/matrices</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># M_paired mode: two count layers</span>
+            <span class="n">M1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">]</span>
+            <span class="n">M2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">]</span>
+            <span class="n">X</span> <span class="o">=</span> <span class="n">M1</span>  <span class="c1"># Use M1 for shape</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">layer</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">X</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adata</span><span class="o">.</span><span class="n">X</span>
@@ -444,28 +487,66 @@
             <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_samples</span>
         <span class="p">}</span>
 
-        <span class="c1"># Convert to dense and transpose for C++ (genes x cells)</span>
-        <span class="k">if</span> <span class="n">sp</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
-            <span class="n">X_dense</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># M_paired mode: compute Yi = log((M1+1)/(M2+1))</span>
+            <span class="c1"># Keep sparse matrices for C++ set_M1i_M2i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_M1i_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_M2i_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_samples</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_indices</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+                <span class="n">M1i</span> <span class="o">=</span> <span class="n">M1</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># Transpose to genes x cells</span>
+                <span class="n">M2i</span> <span class="o">=</span> <span class="n">M2</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span>
+
+                <span class="c1"># Store sparse matrices for C++ (needs CSC format)</span>
+                <span class="k">if</span> <span class="n">sp</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">M1i</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_M1i_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">csc_matrix</span><span class="p">(</span><span class="n">M1i</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_M2i_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">csc_matrix</span><span class="p">(</span><span class="n">M2i</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_M1i_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">csc_matrix</span><span class="p">(</span><span class="n">M1i</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_M2i_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sp</span><span class="o">.</span><span class="n">csc_matrix</span><span class="p">(</span><span class="n">M2i</span><span class="p">))</span>
+
+                <span class="c1"># Compute Yi = log((M1+1)/(M2+1)) for initialization</span>
+                <span class="k">if</span> <span class="n">sp</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">M1i</span><span class="p">):</span>
+                    <span class="n">M1i_dense</span> <span class="o">=</span> <span class="n">M1i</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+                    <span class="n">M2i_dense</span> <span class="o">=</span> <span class="n">M2i</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">M1i_dense</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M1i</span><span class="p">)</span>
+                    <span class="n">M2i_dense</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">M2i</span><span class="p">)</span>
+
+                <span class="n">Yi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">((</span><span class="n">M1i_dense</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">M2i_dense</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">Yi</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logg</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;GEDI model created (M_paired mode)&quot;</span><span class="p">,</span>
+                    <span class="n">deep</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cells</span><span class="si">}</span><span class="s2"> cells × </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_genes</span><span class="si">}</span><span class="s2"> genes, &quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="si">}</span><span class="s2"> samples, K=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_latent</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">X_dense</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+            <span class="c1"># Standard Y mode: log-transform</span>
+            <span class="k">if</span> <span class="n">sp</span><span class="o">.</span><span class="n">issparse</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+                <span class="n">X_dense</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">X_dense</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 
-        <span class="c1"># Log-transform: Y = log1p(X)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">X_dense</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># Transpose to genes x cells</span>
+            <span class="c1"># Log-transform: Y = log1p(X)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">X_dense</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># Transpose to genes x cells</span>
 
-        <span class="c1"># Create per-sample Yi matrices</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_samples</span><span class="p">:</span>
-            <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_indices</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
-            <span class="n">Yi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Y</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Yi</span><span class="p">)</span>
+            <span class="c1"># Create per-sample Yi matrices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_samples</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_indices</span><span class="p">[</span><span class="n">sample</span><span class="p">]</span>
+                <span class="n">Yi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Y</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Yi</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">logg</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;GEDI model created&quot;</span><span class="p">,</span>
-                <span class="n">deep</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cells</span><span class="si">}</span><span class="s2"> cells × </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_genes</span><span class="si">}</span><span class="s2"> genes, &quot;</span>
-                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="si">}</span><span class="s2"> samples, K=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_latent</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logg</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;GEDI model created&quot;</span><span class="p">,</span>
+                    <span class="n">deep</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cells</span><span class="si">}</span><span class="s2"> cells × </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_genes</span><span class="si">}</span><span class="s2"> genes, &quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_samples</span><span class="si">}</span><span class="s2"> samples, K=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_latent</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_init_cpp_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the C++ GEDI model.&quot;&quot;&quot;</span>
@@ -517,14 +598,18 @@
             <span class="n">o_init</span><span class="p">,</span> <span class="n">Z_init</span><span class="p">,</span> <span class="n">U_init</span><span class="p">,</span> <span class="n">S_init</span><span class="p">,</span> <span class="n">D_init</span><span class="p">,</span>
             <span class="n">sigma2_init</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_Yi_list</span><span class="p">,</span>
-            <span class="s2">&quot;Y&quot;</span><span class="p">,</span>  <span class="c1"># obs_type</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_obs_type</span><span class="p">,</span>  <span class="c1"># &quot;Y&quot; or &quot;M_paired&quot;</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ortho_Z</span><span class="p">,</span>
             <span class="kc">True</span><span class="p">,</span>  <span class="c1"># adjustD</span>
-            <span class="kc">False</span><span class="p">,</span>  <span class="c1"># multimodal</span>
+            <span class="kc">False</span><span class="p">,</span>  <span class="c1"># is_si_fixed</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">,</span>
             <span class="n">n_threads</span>
         <span class="p">)</span>
+
+        <span class="c1"># Set M1i/M2i for M_paired mode</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_obs_type</span> <span class="o">==</span> <span class="s2">&quot;M_paired&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cpp_model</span><span class="o">.</span><span class="n">set_M1i_M2i</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_M1i_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_M2i_list</span><span class="p">)</span>
 
         <span class="c1"># Set optional priors</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">C</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -719,7 +804,7 @@
         <div class="bottom-of-page">
           <div class="left-details">
             <div class="copyright">
-                Copyright &#169; 2025, CSGLab
+                Copyright &#169; 2026, CSGLab
             </div>
             Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
             
@@ -747,8 +832,8 @@
     </aside>
   </div>
 </div><script src="../../../_static/documentation_options.js?v=38b66d78"></script>
-    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../../_static/copybutton.js?v=30646c52"></script>
