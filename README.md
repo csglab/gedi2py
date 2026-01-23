@@ -64,8 +64,27 @@ gd.pl.embedding(adata, color=["sample", "cell_type"])
 - **Memory-efficient**: C++ backend keeps large matrices in native memory
 - **Fast**: OpenMP parallelization for multi-threaded optimization
 - **scverse-compliant**: Works seamlessly with AnnData and scanpy
-- **Flexible**: Supports counts, log-transformed data, and binary indicators
+- **Flexible**: Supports counts, log-transformed data, paired data (e.g., CITE-seq), and binary indicators
 - **Comprehensive**: Includes projections, embeddings, imputation, and differential analysis
+
+## Paired Data Mode (M_paired)
+
+gedi2py supports paired count data stored in two AnnData layers, useful for:
+- CITE-seq (ADT vs RNA)
+- Dual-modality assays
+- Ratio-based analyses
+
+```python
+# Two layers: 'm1' (numerator counts) and 'm2' (denominator counts)
+# GEDI models: Yi = log((M1+1)/(M2+1))
+gd.tl.gedi(
+    adata,
+    batch_key="sample",
+    layer="m1",      # First count matrix
+    layer2="m2",     # Second count matrix
+    n_latent=10
+)
+```
 
 ## Documentation
 

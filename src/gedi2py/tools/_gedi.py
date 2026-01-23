@@ -17,6 +17,7 @@ def gedi(
     *,
     n_latent: int = 10,
     layer: str | None = None,
+    layer2: str | None = None,
     max_iterations: int = 100,
     track_interval: int = 5,
     mode: Literal["Bl2", "Bsphere"] = "Bsphere",
@@ -44,6 +45,11 @@ def gedi(
         Number of latent factors (K).
     layer
         Layer to use instead of ``adata.X``. If None, uses ``adata.X``.
+        For paired data (e.g., CITE-seq), this is the first count matrix.
+    layer2
+        Second layer for paired count data (M_paired mode). When specified
+        along with ``layer``, GEDI models the log-ratio: Yi = log((M1+1)/(M2+1)).
+        This is useful for CITE-seq ADT/RNA ratios or similar paired assays.
     max_iterations
         Maximum number of optimization iterations.
     track_interval
@@ -84,6 +90,8 @@ def gedi(
 
     Examples
     --------
+    Standard usage with log-transformed data:
+
     >>> import gedi2py as gd
     >>> import scanpy as sc
     >>> adata = sc.read_h5ad("data.h5ad")
@@ -91,6 +99,18 @@ def gedi(
     >>> sc.pp.neighbors(adata, use_rep="X_gedi")
     >>> sc.tl.umap(adata)
     >>> gd.pl.embedding(adata, color="sample")
+
+    Paired data mode (e.g., CITE-seq with two count layers):
+
+    >>> # adata.layers['adt'] = ADT counts
+    >>> # adata.layers['rna'] = RNA counts (for same features)
+    >>> gd.tl.gedi(
+    ...     adata,
+    ...     batch_key="sample",
+    ...     layer="adt",
+    ...     layer2="rna",
+    ...     n_latent=10
+    ... )
     """
     from .._core import GEDIModel
 
@@ -105,6 +125,7 @@ def gedi(
         batch_key=batch_key,
         n_latent=n_latent,
         layer=layer,
+        layer2=layer2,
         mode=mode,
         ortho_Z=ortho_Z,
         C=C,
@@ -129,6 +150,8 @@ def gedi(
         "params": {
             "batch_key": batch_key,
             "n_latent": n_latent,
+            "layer": layer,
+            "layer2": layer2,
             "mode": mode,
             "ortho_Z": ortho_Z,
             "max_iterations": max_iterations,

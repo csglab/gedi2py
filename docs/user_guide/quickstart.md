@@ -57,8 +57,35 @@ adata.uns['gedi']['params'] # Full parameter dictionary
 |-----------|---------|-------------|
 | `batch_key` | required | Column in `adata.obs` with sample/batch labels |
 | `n_latent` | 10 | Number of latent factors (metagenes) |
+| `layer` | None | Layer to use instead of `adata.X` |
+| `layer2` | None | Second layer for paired data mode (M_paired) |
 | `max_iterations` | 100 | Maximum optimization iterations |
 | `mode` | "Bsphere" | Constraint on B matrices ("Bsphere" or "Bl2") |
+
+## Paired Data Mode (M_paired)
+
+For paired count data (e.g., CITE-seq with ADT/RNA ratios), use the `layer2` parameter:
+
+```python
+# Assuming adata has two count layers:
+# - adata.layers['adt']: ADT protein counts
+# - adata.layers['rna']: RNA counts (same features)
+
+gd.tl.gedi(
+    adata,
+    batch_key="sample",
+    layer="adt",      # Numerator counts (M1)
+    layer2="rna",     # Denominator counts (M2)
+    n_latent=10
+)
+```
+
+GEDI will model the log-ratio: `Yi = log((M1+1)/(M2+1))`
+
+This is particularly useful for:
+- **CITE-seq**: Modeling ADT protein abundance relative to background
+- **Dual-modality assays**: Any paired count measurements
+- **Ratio-based analyses**: When the ratio between two measurements is biologically meaningful
 
 ## Next Steps
 

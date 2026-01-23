@@ -32,6 +32,11 @@ class GEDIModel:
         Number of latent factors (K). Default: 10.
     layer
         Layer to use instead of ``adata.X``. If None, uses ``adata.X``.
+        For paired data (e.g., CITE-seq), this is the first count matrix.
+    layer2
+        Second layer for paired count data (M_paired mode). When specified
+        along with ``layer``, GEDI models the log-ratio: Yi = log((M1+1)/(M2+1)).
+        This is useful for CITE-seq ADT/RNA ratios or similar paired assays.
     mode
         Normalization mode for B matrices: "Bsphere" (recommended) or "Bl2".
     ortho_Z
@@ -56,6 +61,8 @@ class GEDIModel:
 
     Examples
     --------
+    Standard usage:
+
     >>> import gedi2py as gd
     >>> import scanpy as sc
     >>> adata = sc.read_h5ad("data.h5ad")
@@ -63,6 +70,14 @@ class GEDIModel:
     >>> model.train(max_iterations=100)
     >>> Z = model.get_Z()
     >>> embeddings = model.get_latent_representation()
+
+    Paired data mode (e.g., CITE-seq):
+
+    >>> model = gd.GEDIModel(
+    ...     adata, batch_key="sample", n_latent=10,
+    ...     layer="adt", layer2="rna"
+    ... )
+    >>> model.train(max_iterations=100)
     """
 
     def __init__(
@@ -72,6 +87,7 @@ class GEDIModel:
         *,
         n_latent: int = 10,
         layer: str | None = None,
+        layer2: str | None = None,
         mode: Literal["Bl2", "Bsphere"] = "Bsphere",
         ortho_Z: bool = True,
         C: NDArray | None = None,
@@ -84,6 +100,7 @@ class GEDIModel:
         self.batch_key = batch_key
         self.n_latent = n_latent
         self.layer = layer
+        self.layer2 = layer2
         self.mode = mode
         self.ortho_Z = ortho_Z
         self.C = C
@@ -91,6 +108,9 @@ class GEDIModel:
         self.random_state = random_state if random_state is not None else settings.random_state
         self.verbose = verbose if verbose is not None else settings.verbosity
         self.n_jobs = n_jobs if n_jobs is not None else settings.n_jobs
+
+        # Determine observation type based on layers
+        self._obs_type = "M_paired" if layer2 is not None else "Y"
 
         self._is_trained = False
         self._is_initialized = False
@@ -125,10 +145,33 @@ class GEDIModel:
         if self.mode not in ("Bl2", "Bsphere"):
             raise ValueError(f"mode must be 'Bl2' or 'Bsphere', got '{self.mode}'")
 
+        # Validate layer2 (M_paired mode)
+        if self.layer2 is not None:
+            if self.layer is None:
+                raise ValueError(
+                    "layer2 requires layer to be specified. "
+                    "For paired data, provide both layer (M1) and layer2 (M2)."
+                )
+            if self.layer2 not in self.adata.layers:
+                raise ValueError(
+                    f"layer2 '{self.layer2}' not found in adata.layers. "
+                    f"Available layers: {list(self.adata.layers.keys())}"
+                )
+            if self.layer not in self.adata.layers:
+                raise ValueError(
+                    f"layer '{self.layer}' not found in adata.layers. "
+                    f"Available layers: {list(self.adata.layers.keys())}"
+                )
+
     def _prepare_data(self) -> None:
         """Prepare data matrices for C++ backend."""
-        # Get expression matrix
-        if self.layer is not None:
+        # Get expression matrix/matrices
+        if self.layer2 is not None:
+            # M_paired mode: two count layers
+            M1 = self.adata.layers[self.layer]
+            M2 = self.adata.layers[self.layer2]
+            X = M1  # Use M1 for shape
+        elif self.layer is not None:
             X = self.adata.layers[self.layer]
         else:
             X = self.adata.X
@@ -147,28 +190,66 @@ class GEDIModel:
             for sample in self.unique_samples
         }
 
-        # Convert to dense and transpose for C++ (genes x cells)
-        if sp.issparse(X):
-            X_dense = X.toarray()
+        if self.layer2 is not None:
+            # M_paired mode: compute Yi = log((M1+1)/(M2+1))
+            # Keep sparse matrices for C++ set_M1i_M2i
+            self._M1i_list = []
+            self._M2i_list = []
+            self._Yi_list = []
+
+            for sample in self.unique_samples:
+                idx = self.sample_indices[sample]
+                M1i = M1[idx, :].T  # Transpose to genes x cells
+                M2i = M2[idx, :].T
+
+                # Store sparse matrices for C++ (needs CSC format)
+                if sp.issparse(M1i):
+                    self._M1i_list.append(sp.csc_matrix(M1i))
+                    self._M2i_list.append(sp.csc_matrix(M2i))
+                else:
+                    self._M1i_list.append(sp.csc_matrix(M1i))
+                    self._M2i_list.append(sp.csc_matrix(M2i))
+
+                # Compute Yi = log((M1+1)/(M2+1)) for initialization
+                if sp.issparse(M1i):
+                    M1i_dense = M1i.toarray()
+                    M2i_dense = M2i.toarray()
+                else:
+                    M1i_dense = np.asarray(M1i)
+                    M2i_dense = np.asarray(M2i)
+
+                Yi = np.log((M1i_dense + 1) / (M2i_dense + 1))
+                self._Yi_list.append(np.ascontiguousarray(Yi, dtype=np.float64))
+
+            if self.verbose >= 1:
+                logg.info(
+                    f"GEDI model created (M_paired mode)",
+                    deep=f"{self.n_cells} cells × {self.n_genes} genes, "
+                         f"{self.n_samples} samples, K={self.n_latent}"
+                )
         else:
-            X_dense = np.asarray(X)
+            # Standard Y mode: log-transform
+            if sp.issparse(X):
+                X_dense = X.toarray()
+            else:
+                X_dense = np.asarray(X)
 
-        # Log-transform: Y = log1p(X)
-        self._Y = np.log1p(X_dense).T  # Transpose to genes x cells
+            # Log-transform: Y = log1p(X)
+            self._Y = np.log1p(X_dense).T  # Transpose to genes x cells
 
-        # Create per-sample Yi matrices
-        self._Yi_list = []
-        for sample in self.unique_samples:
-            idx = self.sample_indices[sample]
-            Yi = np.ascontiguousarray(self._Y[:, idx], dtype=np.float64)
-            self._Yi_list.append(Yi)
+            # Create per-sample Yi matrices
+            self._Yi_list = []
+            for sample in self.unique_samples:
+                idx = self.sample_indices[sample]
+                Yi = np.ascontiguousarray(self._Y[:, idx], dtype=np.float64)
+                self._Yi_list.append(Yi)
 
-        if self.verbose >= 1:
-            logg.info(
-                f"GEDI model created",
-                deep=f"{self.n_cells} cells × {self.n_genes} genes, "
-                     f"{self.n_samples} samples, K={self.n_latent}"
-            )
+            if self.verbose >= 1:
+                logg.info(
+                    f"GEDI model created",
+                    deep=f"{self.n_cells} cells × {self.n_genes} genes, "
+                         f"{self.n_samples} samples, K={self.n_latent}"
+                )
 
     def _init_cpp_model(self) -> None:
         """Initialize the C++ GEDI model."""
@@ -220,14 +301,18 @@ class GEDIModel:
             o_init, Z_init, U_init, S_init, D_init,
             sigma2_init,
             self._Yi_list,
-            "Y",  # obs_type
+            self._obs_type,  # "Y" or "M_paired"
             self.mode,
             self.ortho_Z,
             True,  # adjustD
-            False,  # multimodal
+            False,  # is_si_fixed
             self.verbose,
             n_threads
         )
+
+        # Set M1i/M2i for M_paired mode
+        if self._obs_type == "M_paired":
+            self._cpp_model.set_M1i_M2i(self._M1i_list, self._M2i_list)
 
         # Set optional priors
         if self.C is not None:
