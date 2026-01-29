@@ -5,9 +5,12 @@
 [![Python](https://img.shields.io/pypi/pyversions/gedi2py)](https://pypi.org/project/gedi2py/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Gene Expression Decomposition for Integration**
+**Gene Expression Decomposition and Integration**
 
 A scverse-compliant Python package for single-cell RNA-seq batch correction and dimensionality reduction using the GEDI algorithm.
+
+Original implementation of `gedi2`  as an R library is available at:
+  https://github.com/csglab/gedi2
 
 ## Overview
 
