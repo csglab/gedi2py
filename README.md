@@ -120,20 +120,6 @@ gd.pl.convergence(adata)
 adata = gd.read_h5ad("data.h5ad")
 gd.io.save_model(adata, "model.h5")
 ```
-
-## Citation
-
-If you use gedi2py in your research, please cite:
-
-> Mikaeili Namini, A., & Najafabadi, H.S. (2024). GEDI: Gene Expression Decomposition for Integration of single-cell RNA-seq data.
-
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
-## Links
-
-- [Documentation](https://csglab.github.io/gedi2py)
-- [GitHub Repository](https://github.com/csglab/gedi2py)
-- [Issue Tracker](https://github.com/csglab/gedi2py/issues)
-- [CSGLab](https://csglab.org)
